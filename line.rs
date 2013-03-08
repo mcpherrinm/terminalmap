@@ -163,6 +163,7 @@ fn main() {
         sizex = 2*int::from_str(xb).unwrap()-1;
         sizey = 2*int::from_str(yb).unwrap()-1;
         state = 0; xb = ~""; yb = ~"";
+        zap((x,y), (sizex, sizey));
       }
       (_, 4 as char) => break,
       (_, _) => {
