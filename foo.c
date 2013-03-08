@@ -6,7 +6,7 @@
 
 struct termios orig;
 
-void fuckup() {
+void unbuffer() {
   struct termios new;
   tcgetattr(0, &orig);
   memcpy(&new, &orig, sizeof(struct termios));
@@ -16,7 +16,7 @@ void fuckup() {
   tcsetattr(0, TCSANOW, &new);
 }
 
-void unfuck() {
+void restore() {
   tcsetattr(0, TCSANOW, &orig);
 }
 

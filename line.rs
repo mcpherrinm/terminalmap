@@ -78,17 +78,17 @@ fn line(p1: (int, int), p2: (int, int), draw: fn(int, int)) {
 }
 
 extern mod foo {
-  fn fuckup();
-  fn unfuck();
+  fn unbuffer();
+  fn restore();
   fn getbyte() -> libc::c_int;
 }
 
 fn unbuffer() {
-  unsafe { foo::fuckup() }
+  unsafe { foo::unbuffer() }
 }
 
-fn reset() {
-  unsafe { foo::unfuck() }
+fn restore() {
+  unsafe { foo::restore() }
 }
 
 fn getbyte() ->i32 {
@@ -125,8 +125,8 @@ fn main() {
   let mut sizex = 120*2;
   let mut sizey = 25*2;
   io::print("\u001B[2J\u001B[?25l\u001B[999;999H\u001B[6n\u001B[H");
+  zap((x,y), (sizex, sizey));
   while i >= 0 && i != 4 {
-    zap((x,y), (sizex, sizey));
     i = getbyte();
     match (state, i as char) {
       (0, 0x1B as char) => state = 1,
@@ -134,18 +134,22 @@ fn main() {
       (2, 'A') => {
         state = 0;
         y = int::max(y-1, 0);
+        zap((x,y), (sizex, sizey));
       },
       (2, 'B') => {
         state = 0;
         y = int::min(y+1, sizey-1);
+        zap((x,y), (sizex, sizey));
       },
       (2, 'C') => {
         state = 0;
-        x = int::min(x+1, sizex-1);
+        x = int::min(x+2, sizex-1);
+        zap((x,y), (sizex, sizey));
       },
       (2, 'D') => {
         state = 0;
-        x = int::max(x-1, 0);
+        x = int::max(x-2, 0);
+        zap((x,y), (sizex, sizey));
       },
       (2 .. 3, '0' .. '9') => {
         state = 3;
@@ -166,5 +170,5 @@ fn main() {
       }
     }
   }
-  reset();
+  restore();
 }
