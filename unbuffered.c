@@ -31,7 +31,7 @@ int getbyte() {
 
 #ifdef TEST
 int main() {
-  fuckup();
+  unbuffer();
   while (1) {
     int c = getbyte();
     if(c < 0 || c == 4) {
@@ -40,7 +40,7 @@ int main() {
       printf(" char read: %x\n", c);
     }
   }
-  unfuck();
+  restore();
   return 0;
 }
 #endif

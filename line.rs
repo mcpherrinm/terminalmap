@@ -77,22 +77,22 @@ fn line(p1: (int, int), p2: (int, int), draw: fn(int, int)) {
   }
 }
 
-extern mod foo {
+extern mod unbuffered {
   fn unbuffer();
   fn restore();
   fn getbyte() -> libc::c_int;
 }
 
 fn unbuffer() {
-  unsafe { foo::unbuffer() }
+  unsafe { unbuffered::unbuffer() }
 }
 
 fn restore() {
-  unsafe { foo::restore() }
+  unsafe { unbuffered::restore() }
 }
 
 fn getbyte() ->i32 {
-  unsafe {foo::getbyte()}
+  unsafe {unbuffered::getbyte()}
 }
 
 fn zap(p: (int, int), size: (int, int)) {

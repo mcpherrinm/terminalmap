@@ -1,14 +1,12 @@
 .PHONY: clean default
 
-line: line.rs libfoo.a
+line: line.rs libunbuffered.a
 	rustc line.rs -L.
 
-libfoo.a: foo.o
-	ar cr libfoo.a foo.o
+libunbuffered.a: unbuffered.o
+	ar cr $@ $<
 
-foo.o: foo.c
-	gcc foo.c -c -o foo.o
-
+unbuffered.o: unbuffered.c
 
 clean:
-	-rm line foo.o libfoo.a
+	-rm line libunbuffered.a unbuffered.o
