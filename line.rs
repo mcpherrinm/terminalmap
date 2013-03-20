@@ -1,5 +1,4 @@
-use io::Reader;
-use libc::{c_int};
+use core::libc::{c_int};
 
 const chars: &'static [char] = &[
   ' ',
@@ -51,7 +50,7 @@ fn dump(image: &[~[u8]])  {
   io::print(buf);
 }
 
-fn line(p1: (int, int), p2: (int, int), draw: fn(int, int)) {
+fn line(p1: (int, int), p2: (int, int), draw: &fn(int, int)) {
   // http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#Simplification
   let mut (x1, y1) = p1;
   let (x2, y2) = p2;
@@ -91,7 +90,7 @@ fn restore() {
   unsafe { unbuffered::restore() }
 }
 
-fn getbyte() ->i32 {
+fn getbyte() -> i32 {
   unsafe {unbuffered::getbyte()}
 }
 
