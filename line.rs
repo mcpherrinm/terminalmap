@@ -1,6 +1,6 @@
 use core::libc::{c_int};
 
-const chars: &'static [char] = &[
+static chars: &'static [char] = &[
   ' ',
   '\u2597',
   '\u2596',
@@ -18,7 +18,7 @@ const chars: &'static [char] = &[
   '\u259B',
   '\u2588'];
 
-fn charmap(pixels: [u8 * 4]) -> char {
+fn charmap(pixels: [u8, ..4]) -> char {
   let pixels = vec::map(pixels, |&p| {
     if p > 0 {
       1
