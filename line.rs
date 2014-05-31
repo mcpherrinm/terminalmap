@@ -1,4 +1,6 @@
-use core::libc::{c_int};
+extern crate libc;
+use std::cmp::{min, max};
+use std::num::abs;
 
 static chars: &'static [char] = &[
   ' ',
@@ -18,51 +20,48 @@ static chars: &'static [char] = &[
   '\u259B',
   '\u2588'];
 
-fn charmap(pixels: [u8, ..4]) -> char {
-  let pixels = vec::map(pixels, |&p| {
-    if p > 0 {
-      1
-    } else {
-      0
-    }
-  });
+fn charmap(mut pixels: [u8, ..4]) -> char {
+  for i in range(0, 4u) {
+    pixels[i] = if pixels[i] > 0 { 1 } else { 0 };
+  }
   let lookup = pixels[0] << 3 | pixels[1] << 2 | pixels[2] << 1 | pixels[3];
-  chars[lookup]
+  chars[lookup as uint]
 }
 
-fn dump(image: &[~[u8]])  {
-  io::print("\u001B[H");
+fn dump(image: &[Vec<u8>])  {
+  println!("\u001B[H");
   let mut i = 0u;
-  let mut buf = ~"\u001B[H\u001B[2J";
+  let mut buf = String::from_str("\u001B[H\u001B[2J");
   while i < image.len()-1 {
     let mut j = 0u;
     while j < image[i].len()-1 {
       buf.push_char(
-                charmap([image[i][j],
-                         image[i][j+1],
-                         image[i+1][j],
-                         image[i+1][j+1]]));
+                charmap([*image[i].get(j),
+                         *image[i].get(j+1),
+                         *image[i+1].get(j),
+                         *image[i+1].get(j+1)]));
       j+=2u;
     }
     buf.push_char('\n');
     i+=2;
   }
-  io::print(buf);
+  println!("{}", buf);
 }
 
-fn line(p1: (int, int), p2: (int, int), draw: &fn(int, int)) {
+fn line(p1: (int, int), p2: (int, int), image: &mut [Vec<u8>]) {
   // http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#Simplification
-  let mut (x1, y1) = p1;
+  let (mut x1, mut y1) = p1;
   let (x2, y2) = p2;
-  let dx = int::abs(x1-x2);
-  let dy = int::abs(y1-y2);
+  let dx = abs(x1-x2);
+  let dy = abs(y1-y2);
   let sx = if x1<x2 { 1 } else { -1 };
   let sy = if y1<y2 { 1 } else { -1 };
 
   let mut err = dx-dy;
 
   loop {
-    draw(x1, y1);
+    let r = image[y1 as uint].get_mut(x1 as uint);
+    *r = 1;
     if x1 == x2 && y1 == y2 { break; }
     let e2 = err * 2;
     if e2 > -dy {
@@ -76,10 +75,13 @@ fn line(p1: (int, int), p2: (int, int), draw: &fn(int, int)) {
   }
 }
 
-extern mod unbuffered {
-  fn unbuffer();
-  fn restore();
-  fn getbyte() -> libc::c_int;
+mod unbuffered {
+	#[link(name="unbuffered")]
+	extern  {
+	  pub fn unbuffer();
+	  pub fn restore();
+	  pub fn getbyte() -> ::libc::c_int;
+	}
 }
 
 fn unbuffer() {
@@ -90,81 +92,78 @@ fn restore() {
   unsafe { unbuffered::restore() }
 }
 
-fn getbyte() -> i32 {
-  unsafe {unbuffered::getbyte()}
+fn getbyte() -> u8 {
+  unsafe {unbuffered::getbyte() as u8}
 }
 
 fn zap(p: (int, int), size: (int, int)) {
   let (cornerx, cornery) = size;
-  let mut image: ~[~[u8]] = ~[];
-  for int::range(0, cornery) |_| { 
-    let mut row: ~[u8] = ~[];
-    for int::range(0, cornerx) |_| { row.push(0u8) }
+  let mut image: Vec<Vec<u8>> = Vec::new();
+  for _ in range(0, cornery) { 
+    let mut row: Vec<u8> = Vec::new();
+    for _ in range(0, cornerx) { row.push(0u8) }
     image.push(row);
   }
-  let draw = |x: int, y: int| {
-    image[y][x] = 1;
-  };
 
-  line(p, (0,0), draw);
-  line(p, (cornerx-1,0), draw);
-  line(p, (0,cornery-1), draw);
-  line(p, (cornerx-1,cornery-1), draw);
-  dump(image);
+  line(p, (0,0), image.as_mut_slice());
+  line(p, (cornerx-1,0), image.as_mut_slice());
+  line(p, (0,cornery-1), image.as_mut_slice());
+  line(p, (cornerx-1,cornery-1), image.as_mut_slice());
+  dump(image.as_slice());
 }
 
 fn main() {
   unbuffer();
-  let mut i: c_int = 0;
+  let mut i = 0;
   let mut state = 0;
   let mut x = 15;
   let mut y = 15;
-  let mut xb: ~str = ~"";
-  let mut yb: ~str = ~"";
+  let mut xb = String::new();
+  let mut yb = String::new();
   let mut sizex = 120*2;
   let mut sizey = 25*2;
-  io::print("\u001B[2J\u001B[?25l\u001B[999;999H\u001B[6n\u001B[H");
+  std::io::stdio::print("\u001B[2J\u001B[?25l\u001B[999;999H\u001B[6n\u001B[H");
   zap((x,y), (sizex, sizey));
   while i >= 0 && i != 4 {
     i = getbyte();
-    match (state, i as char) {
-      (0, 0x1B as char) => state = 1,
-      (1, '[') => state = 2,
-      (2, 'A') => {
+    match (state, i) {
+      (0, 0x1B) => state = 1,
+      (1, 0x5B) => state = 2,
+      (2, 0x41) => {
         state = 0;
-        y = int::max(y-1, 0);
+        y = max(y-1, 0);
         zap((x,y), (sizex, sizey));
       },
-      (2, 'B') => {
+      (2, 0x42) => {
         state = 0;
-        y = int::min(y+1, sizey-1);
+        y = min(y+1, sizey-1);
         zap((x,y), (sizex, sizey));
       },
-      (2, 'C') => {
+      (2, 0x43) => {
         state = 0;
-        x = int::min(x+2, sizex-1);
+        x = min(x+2, sizex-1);
         zap((x,y), (sizex, sizey));
       },
-      (2, 'D') => {
+      (2, 0x44) => {
         state = 0;
-        x = int::max(x-2, 0);
+        x = max(x-2, 0);
         zap((x,y), (sizex, sizey));
       },
-      (2 .. 3, '0' .. '9') => {
+      (2 .. 3, 0x30 .. 0x39) => {
         state = 3;
         yb.push_char(i as char);
       }
-      (3, ';') => state = 4,
-      (4, '0' .. '9') => xb.push_char(i as char),
-      (4, 'R') => {
-        io::println(xb);
-        io::println(yb);
-        sizex = 2*int::from_str(xb).unwrap()-1;
-        sizey = 2*int::from_str(yb).unwrap()-1;
-        state = 0; xb = ~""; yb = ~"";
+      (3, 0x3B) => state = 4,
+      (4, 0x30 .. 0x39) => xb.push_char(i as char),
+      (4, 0x52) => {
+        println!("{}", xb);
+        println!("{}", yb);
+        sizex = 2*from_str(xb.as_slice()).unwrap()-1;
+        sizey = 2*from_str(yb.as_slice()).unwrap()-1;
+        state = 0; xb = String::new(); yb = String::new();
         zap((x,y), (sizex, sizey));
       }
-      (_, 4 as char) => break,
+      (_, 4) => break,
       (_, _) => {
         state = 0;
       }
