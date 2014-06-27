@@ -1,4 +1,6 @@
+#ifdef TEST
 #include <stdio.h>
+#endif
 #include <termios.h>
 #include <unistd.h>
 #include <stdlib.h>

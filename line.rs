@@ -124,7 +124,7 @@ fn main() {
   let mut sizey = 25*2;
   std::io::stdio::print("\u001B[2J\u001B[?25l\u001B[999;999H\u001B[6n\u001B[H");
   zap((x,y), (sizex, sizey));
-  while i >= 0 && i != 4 {
+  while i != 4 {
     i = getbyte();
     match (state, i) {
       (0, 0x1B) => state = 1,
