@@ -1,48 +1,48 @@
 extern crate libc;
 use std::cmp::{min, max};
-use std::num::abs;
+use std::num::SignedInt;
 
-static chars: &'static [char] = &[
-  ' ',
-  '\u2597',
-  '\u2596',
-  '\u2584', // LOWER HALF BLOCK
-  '\u259D',
-  '\u2590',
-  '\u259E',
-  '\u259F',
-  '\u2598',
-  '\u259A',
-  '\u258C',
-  '\u2599',
-  '\u2580',
-  '\u259C',
-  '\u259B',
-  '\u2588'];
 
 fn charmap(mut pixels: [u8, ..4]) -> char {
+  static CHARS: &'static [char] = &[
+    ' ',
+    '\u{2597}',
+    '\u{2596}',
+    '\u{2584}', // LOWER HALF BLOCK
+    '\u{259D}',
+    '\u{2590}',
+    '\u{259E}',
+    '\u{259F}',
+    '\u{2598}',
+    '\u{259A}',
+    '\u{258C}',
+    '\u{2599}',
+    '\u{2580}',
+    '\u{259C}',
+    '\u{259B}',
+    '\u{2588}'];
   for i in range(0, 4u) {
     pixels[i] = if pixels[i] > 0 { 1 } else { 0 };
   }
   let lookup = pixels[0] << 3 | pixels[1] << 2 | pixels[2] << 1 | pixels[3];
-  chars[lookup as uint]
+  CHARS[lookup as uint]
 }
 
 fn dump(image: &[Vec<u8>])  {
-  println!("\u001B[H");
+  println!("\u{001B}[H");
   let mut i = 0u;
-  let mut buf = String::from_str("\u001B[H\u001B[2J");
+  let mut buf = String::from_str("\u{001B}[H\u{001B}[2J");
   while i < image.len()-1 {
     let mut j = 0u;
     while j < image[i].len()-1 {
-      buf.push_char(
-                charmap([*image[i].get(j),
-                         *image[i].get(j+1),
-                         *image[i+1].get(j),
-                         *image[i+1].get(j+1)]));
+      buf.push(
+                charmap([image[i][j],
+                         image[i][j+1],
+                         image[i+1][j],
+                         image[i+1][j+1]]));
       j+=2u;
     }
-    buf.push_char('\n');
+    buf.push('\n');
     i+=2;
   }
   println!("{}", buf);
@@ -52,16 +52,15 @@ fn line(p1: (int, int), p2: (int, int), image: &mut [Vec<u8>]) {
   // http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#Simplification
   let (mut x1, mut y1) = p1;
   let (x2, y2) = p2;
-  let dx = abs(x1-x2);
-  let dy = abs(y1-y2);
+  let dx = (x1-x2).abs();
+  let dy = (y1-y2).abs();
   let sx = if x1<x2 { 1 } else { -1 };
   let sy = if y1<y2 { 1 } else { -1 };
 
   let mut err = dx-dy;
 
   loop {
-    let r = image[y1 as uint].get_mut(x1 as uint);
-    *r = 1;
+    image[y1 as uint][x1 as uint] = 1;
     if x1 == x2 && y1 == y2 { break; }
     let e2 = err * 2;
     if e2 > -dy {
@@ -115,14 +114,14 @@ fn zap(p: (int, int), size: (int, int)) {
 fn main() {
   unbuffer();
   let mut i = 0;
-  let mut state = 0;
+  let mut state = 0i;
   let mut x = 15;
   let mut y = 15;
   let mut xb = String::new();
   let mut yb = String::new();
   let mut sizex = 120*2;
   let mut sizey = 25*2;
-  std::io::stdio::print("\u001B[2J\u001B[?25l\u001B[999;999H\u001B[6n\u001B[H");
+  std::io::stdio::print("\u{001B}[2J\u{001B}[?25l\u{001B}[999;999H\u{001B}[6n\u{001B}[H");
   zap((x,y), (sizex, sizey));
   while i != 4 {
     i = getbyte();
@@ -149,12 +148,12 @@ fn main() {
         x = max(x-2, 0);
         zap((x,y), (sizex, sizey));
       },
-      (2 .. 3, 0x30 .. 0x39) => {
+      (2 ... 3, 0x30 ... 0x39) => {
         state = 3;
-        yb.push_char(i as char);
+        yb.push(i as char);
       }
       (3, 0x3B) => state = 4,
-      (4, 0x30 .. 0x39) => xb.push_char(i as char),
+      (4, 0x30 ... 0x39) => xb.push(i as char),
       (4, 0x52) => {
         println!("{}", xb);
         println!("{}", yb);

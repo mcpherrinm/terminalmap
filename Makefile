@@ -1,4 +1,5 @@
 .PHONY: clean default
+CFLAGS=-fPIC -Wall -O2
 
 line: line.rs libunbuffered.a
 	rustc line.rs -L.
